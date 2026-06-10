@@ -32,9 +32,17 @@ class BotController:
         self.asset = settings.ASSET
         self.trade_value = settings.TRADE_VALUE
         self.mode = settings.MODE
+        self._last_action_time = 0
+
+    def _debounce(self) -> bool:
+        now = asyncio.get_event_loop().time()
+        if now - self._last_action_time < 3:
+            return False
+        self._last_action_time = now
+        return True
 
     async def start(self):
-        if self.running:
+        if self.running or not self._debounce():
             return
         self.running = True
         update_state({"status": "RODANDO", "error": None})
@@ -43,6 +51,8 @@ class BotController:
         logger.info("Bot iniciado")
 
     async def stop(self):
+        if not self.running or not self._debounce():
+            return
         self.running = False
         if self._task:
             self._task.cancel()
