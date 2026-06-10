@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ASSET: str = "frxEURUSD"
     TRADE_VALUE: float = 1.0
     MODE: Literal["demo", "real"] = "demo"
-    DERIV_WS_URL: str = "wss://ws.derivws.com/websockets/v3?app_id=35148"
+    DERIV_WS_URL: str = "wss://ws.derivws.com/websockets/v3?app_id=16929"
     TRADE_DURATION: int = 5
     MAX_CONSECUTIVE_LOSSES: int = 3
     MAX_DAILY_LOSS_PCT: float = 5.0

@@ -50,6 +50,7 @@ class DerivWS:
         await self._send({"authorize": settings.DERIV_TOKEN, "req_id": req_id})
         try:
             resp = await asyncio.wait_for(fut, timeout=10)
+            logger.info(f"Resposta autorização: {json.dumps(resp)[:200]}")
             if "error" in resp:
                 logger.error(f"Erro na autorização: {resp['error']}")
                 return
