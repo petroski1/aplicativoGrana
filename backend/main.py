@@ -148,6 +148,27 @@ class BotController:
 bot_controller = BotController()
 
 
+async def _candle_broadcaster():
+    """Broadcasts candles to frontend even when bot is stopped."""
+    while True:
+        try:
+            candles = deriv_ws.candles
+            balance = deriv_ws.balance
+            if candles:
+                trades = await get_recent_trades(20)
+                stats = await get_stats()
+                update_state({
+                    "candles": candles[-100:],
+                    "balance": balance,
+                    "recent_trades": trades,
+                    "stats": stats,
+                })
+                await broadcast()
+        except Exception:
+            pass
+        await asyncio.sleep(3)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
@@ -160,8 +181,11 @@ async def lifespan(app: FastAPI):
     update_state({"balance": balance, "asset": settings.ASSET, "mode": settings.MODE})
 
     ws_server = await start_server()
+    broadcaster_task = asyncio.create_task(_candle_broadcaster())
 
     yield
+
+    broadcaster_task.cancel()
 
     await bot_controller.stop()
     ws_server.close()

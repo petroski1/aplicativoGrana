@@ -48,7 +48,12 @@ async def _handler(websocket):
     _clients.add(websocket)
     logger.info(f"Frontend conectado. Total: {len(_clients)}")
     try:
-        await websocket.send(json.dumps(_state))
+        from deriv_ws import deriv_ws
+        current = dict(_state)
+        if deriv_ws.candles:
+            current["candles"] = deriv_ws.candles[-100:]
+            current["balance"] = deriv_ws.balance
+        await websocket.send(json.dumps(current))
         async for message in websocket:
             try:
                 data = json.loads(message)
