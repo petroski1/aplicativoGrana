@@ -50,11 +50,45 @@ class DerivWS:
         await self._send({"authorize": settings.DERIV_TOKEN, "req_id": req_id})
         try:
             resp = await asyncio.wait_for(fut, timeout=10)
+            if "error" in resp:
+                logger.error(f"Erro na autorização: {resp['error']}")
+                return
             if "authorize" in resp:
-                self.balance = resp["authorize"].get("balance", 0.0)
-                logger.info(f"Autorizado. Saldo: {self.balance}")
+                auth = resp["authorize"]
+                self.balance = auth.get("balance", 0.0)
+                self.account_id = auth.get("loginid", "")
+                logger.info(f"Autorizado. Conta: {self.account_id} | Saldo: {self.balance}")
+
+                # Se saldo zero, tenta trocar para conta virtual
+                if self.balance == 0:
+                    await self._switch_to_virtual()
         except asyncio.TimeoutError:
             logger.error("Timeout na autorização")
+
+    async def _switch_to_virtual(self):
+        """Tenta trocar para conta demo se saldo for zero."""
+        req_id = self._next_req_id()
+        fut = asyncio.get_event_loop().create_future()
+        self._pending[req_id] = fut
+        await self._send({"account_list": 1, "req_id": req_id})
+        try:
+            resp = await asyncio.wait_for(fut, timeout=10)
+            accounts = resp.get("account_list", [])
+            virtual = next((a for a in accounts if a.get("is_virtual") == 1), None)
+            if virtual:
+                token = virtual.get("token")
+                if token:
+                    logger.info(f"Trocando para conta virtual: {virtual.get('loginid')}")
+                    req_id2 = self._next_req_id()
+                    fut2 = asyncio.get_event_loop().create_future()
+                    self._pending[req_id2] = fut2
+                    await self._send({"authorize": token, "req_id": req_id2})
+                    resp2 = await asyncio.wait_for(fut2, timeout=10)
+                    if "authorize" in resp2:
+                        self.balance = resp2["authorize"].get("balance", 0.0)
+                        logger.info(f"Conta virtual ativa. Saldo: {self.balance}")
+        except Exception as e:
+            logger.warning(f"Não foi possível trocar para conta virtual: {e}")
 
     async def _listener(self):
         try:

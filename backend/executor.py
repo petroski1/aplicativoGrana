@@ -22,13 +22,15 @@ class Executor:
             self.trade_count_today = 0
 
     async def execute(self, decision: str, reason: str, asset: str, amount: float, balance: float) -> dict:
-        self._reset_daily_if_needed(balance)
+        # Em modo demo com saldo zero, usa saldo simulado de 10000
+        effective_balance = balance if balance > 0 else 10000.0
+        self._reset_daily_if_needed(effective_balance)
 
         consecutive_losses = await get_consecutive_losses()
         current_hour = datetime.utcnow().hour
 
         allowed, risk_reason = risk_manager.check(
-            balance=balance,
+            balance=effective_balance,
             daily_start_balance=self.daily_start_balance,
             consecutive_losses=consecutive_losses,
             current_hour=current_hour,
