@@ -1,5 +1,9 @@
 from pydantic_settings import BaseSettings
 from typing import Literal
+from dotenv import load_dotenv
+import os
+
+load_dotenv(override=True)
 
 
 class Settings(BaseSettings):
@@ -19,6 +23,8 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
 
 
 settings = Settings()
+print(f"[CONFIG] DERIV_TOKEN carregado: ...{settings.DERIV_TOKEN[-8:] if settings.DERIV_TOKEN else 'VAZIO'}")
